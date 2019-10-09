@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Web Audio API Chrome Bug</title>
+    <script src="https://assets.rpy.xyz/web-audio-peak-meter.min.js"></script>
+  </head>
+  <body>
+    <h1>Web Audio API Chrome Bug</h1>
+    <a href="https://www2.iis.fraunhofer.de/AAC/multichannel.html">Audio from Fraunhofer AAC Multichannel Playback Test</a>
+    </br>
+    </br>
+    <audio
+      src="ChID-BLITS-EBU-Narration.mp4"
+      type="audio/mp4"
+      controls
+    ></audio>
+    <p>Please use these buttons to toggle playback:</p>
+    <div style="display: flex;">
+        <button id="play-button">Play</button>
+        <button id="pause-button">Pause</button>
+    </div>
+    <div
+      id="my-peak-meter"
+      style="width: 20em; height: 20em; margin: 1em 0;"
+    ></div>
+  </body>
+  <script>
+    document.querySelector("#play-button").addEventListener("click", () => {
+        audio.play();
+        audioCtx.resume().then(() => {
+            console.log('Playback resumed successfully');
+        });
+    });
+    document.querySelector("#pause-button").addEventListener("click", () => {
+        audio.pause();
+        audioCtx.suspend().then(() => {
+            console.log('Playback suspended successfully');
+        });
+    });
+
+    const channelCount = 8;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+    const audioCtx = new AudioContext();
+    window.audioCtx = audioCtx;
+
+    const audio = document.querySelector("audio");
+    window.audio = audio;
+    if (!audio) {
+      console.error("Cannot create audio context without a audio element!");
+    }
+
+    const source = audioCtx.createMediaElementSource(audio);
+    source.channelCount = channelCount;
+
+    const splitter = audioCtx.createChannelSplitter(channelCount);
+    const merger = audioCtx.createChannelMerger(channelCount);
+
+    for (let i = 0; i < channelCount; i++) {
+      const gainNode = audioCtx.createGain();
+      gainNode.channelCount = 1;
+      gainNode.gain.value = 1;
+
+      splitter.connect(gainNode, i, 0);
+      gainNode.connect(audioCtx.destination);
+    }
+
+    source.connect(splitter);
+    source.channelCount = channelCount;
+
+    // Initialize peak meter
+    const peakMeterElement = document.getElementById("my-peak-meter");
+    const meterNode = webAudioPeakMeter.createMeterNode(source, audioCtx);
+    webAudioPeakMeter.createMeter(peakMeterElement, meterNode, {});
+  </script>
+</html>
